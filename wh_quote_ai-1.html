@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WH·QUOTE AI — Akıllı Teklif Sistemi</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #060608;
+    --s1: #0e0e14;
+    --s2: #161620;
+    --border: #252535;
+    --accent: #4fffb0;
+    --accent2: #ff6b6b;
+    --accent3: #6b9fff;
+    --text: #ddddf0;
+    --dim: #77778a;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+
+  /* Scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 36px;
+    border-bottom: 1px solid var(--border);
+    background: var(--s1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 3px;
+  }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    margin-top: 3px;
+  }
+
+  .ai-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent3);
+    border: 1px solid rgba(107,159,255,0.3);
+    padding: 6px 14px;
+    border-radius: 2px;
+    background: rgba(107,159,255,0.05);
+  }
+
+  .ai-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent3);
+    border-radius: 50%;
+    animation: blink 1.5s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .main {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 36px;
+  }
+
+  .hero {
+    margin-bottom: 36px;
+  }
+
+  .hero h1 {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+
+  .hero h1 span { color: var(--accent); }
+
+  .hero p {
+    color: var(--dim);
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  /* Upload Zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 6px;
+    padding: 48px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: var(--s1);
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(79,255,176,0.03) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .upload-zone:hover, .upload-zone.drag {
+    border-color: var(--accent);
+    background: rgba(79,255,176,0.03);
+  }
+
+  .upload-icon {
+    font-size: 40px;
+    margin-bottom: 14px;
+    opacity: 0.6;
+  }
+
+  .upload-title {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .upload-sub {
+    font-size: 13px;
+    color: var(--dim);
+  }
+
+  #fileInput { display: none; }
+
+  /* Processing */
+  .processing {
+    display: none;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: var(--s1);
+    border: 1px solid rgba(107,159,255,0.3);
+    border-radius: 4px;
+    margin-bottom: 28px;
+  }
+
+  .processing.show { display: flex; }
+
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent3);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .processing-text {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent3);
+  }
+
+  .processing-sub {
+    font-size: 12px;
+    color: var(--dim);
+    margin-top: 3px;
+  }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .panel-head {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--s2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .panel-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  .panel-body { padding: 20px; }
+
+  /* BOM Table */
+  .bom-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  th {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--dim);
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(37,37,53,0.6);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(79,255,176,0.02); }
+
+  .type-chip {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .chip-wire { background: rgba(107,159,255,0.12); color: var(--accent3); }
+  .chip-connector { background: rgba(79,255,176,0.1); color: var(--accent); }
+  .chip-terminal { background: rgba(255,107,107,0.1); color: var(--accent2); }
+  .chip-cable { background: rgba(255,200,100,0.1); color: #ffc864; }
+  .chip-other { background: rgba(150,150,180,0.1); color: var(--dim); }
+
+  input[type="number"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    border-radius: 2px;
+    width: 75px;
+    transition: border-color 0.2s;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* Params */
+  .param-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .param label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .param input {
+    width: 100%;
+  }
+
+  /* Summary */
+  .sum-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(37,37,53,0.5);
+    font-size: 13px;
+  }
+
+  .sum-row:last-child { border-bottom: none; }
+  .sum-label { color: var(--dim); font-size: 12px; }
+  .sum-val { font-family: var(--mono); font-size: 12px; }
+
+  .total-box {
+    margin-top: 16px;
+    padding: 18px;
+    background: rgba(79,255,176,0.04);
+    border: 1px solid rgba(79,255,176,0.2);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .total-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .total-val {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .time-box {
+    margin-top: 10px;
+    padding: 14px 18px;
+    background: rgba(255,107,107,0.04);
+    border: 1px solid rgba(255,107,107,0.2);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .time-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--accent2);
+    text-transform: uppercase;
+  }
+
+  .time-val {
+    font-family: var(--mono);
+    font-size: 18px;
+    color: var(--accent2);
+  }
+
+  .btn {
+    padding: 10px 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-calc {
+    width: 100%;
+    padding: 14px;
+    margin-top: 16px;
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+    font-size: 12px;
+  }
+
+  .btn-calc:hover {
+    background: #7fffcc;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(79,255,176,0.2);
+  }
+
+  .btn-export {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    background: transparent;
+    color: var(--accent3);
+    border: 1px solid rgba(107,159,255,0.4);
+    font-size: 11px;
+  }
+
+  .btn-export:hover { background: rgba(107,159,255,0.05); }
+
+  /* Bar chart */
+  .bar-item { margin-bottom: 14px; }
+
+  .bar-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 12px;
+  }
+
+  .bar-label { color: var(--dim); }
+  .bar-pct { font-family: var(--mono); font-size: 11px; }
+
+  .bar-track {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 2;
+  }
+
+  .ai-note {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: rgba(107,159,255,0.05);
+    border-left: 2px solid var(--accent3);
+    border-radius: 0 4px 4px 0;
+    font-size: 12px;
+    color: var(--dim);
+    line-height: 1.6;
+  }
+
+  .ai-note strong { color: var(--accent3); }
+
+  .item-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(79,255,176,0.1);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  .gap { margin-top: 20px; }
+
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: 1fr; }
+    .main { padding: 20px; }
+    .upload-zone { padding: 32px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">WH · QUOTE</div>
+    <div class="logo-sub">AI-POWERED QUOTATION SYSTEM</div>
+  </div>
+  <div class="ai-badge">
+    <div class="ai-dot"></div>
+    CLAUDE AI AKTİF
+  </div>
+</header>
+
+<div class="main">
+  <div class="hero">
+    <h1>Otomatik <span>Tekliflendirme</span></h1>
+    <p>PDF veya BOM dosyanızı yükleyin — AI okusun, sistem teklifi hazırlasın</p>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+    <div class="upload-icon">📄</div>
+    <div class="upload-title">PDF / BOM DOSYASI YÜKLE</div>
+    <div class="upload-sub">Sürükle bırak veya tıkla &nbsp;·&nbsp; PDF, Excel, CSV desteklenir</div>
+    <input type="file" id="fileInput" accept=".pdf,.csv,.xlsx,.xls" onchange="handleFile(event)">
+  </div>
+
+  <!-- Processing indicator -->
+  <div class="processing" id="processing">
+    <div class="spinner"></div>
+    <div>
+      <div class="processing-text">AI BOM OKUYUR...</div>
+      <div class="processing-sub" id="processingStatus">PDF analiz ediliyor, komponentler çıkarılıyor</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Left -->
+    <div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="panel-dot" style="background:var(--accent3)"></div>
+            Bill of Materials
+          </div>
+          <span class="item-count" id="itemCount">0 kalem</span>
+        </div>
+        <div class="panel-body">
+          <div class="bom-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Tip</th>
+                  <th>Part / Açıklama</th>
+                  <th>Miktar</th>
+                  <th>Birim</th>
+                  <th>Birim Fiyat (₺)</th>
+                </tr>
+              </thead>
+              <tbody id="bomBody">
+                <tr>
+                  <td colspan="6">
+                    <div class="empty-state">
+                      PDF yükleyin<br>AI BOM'u otomatik dolduracak
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="ai-note" id="aiNote" style="display:none">
+            <strong>AI Notu:</strong> <span id="aiNoteText"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Params -->
+      <div class="panel gap">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="panel-dot" style="background:var(--accent2)"></div>
+            İşçilik & Gider Parametreleri
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="param-grid">
+            <div class="param">
+              <label>İşçi Saati (₺/saat)</label>
+              <input type="number" id="laborRate" value="180">
+            </div>
+            <div class="param">
+              <label>Kablo Montaj (dak/mt)</label>
+              <input type="number" id="cableTime" value="2.5" step="0.1">
+            </div>
+            <div class="param">
+              <label>Konnektör (dak/adet)</label>
+              <input type="number" id="connTime" value="4" step="0.1">
+            </div>
+            <div class="param">
+              <label>Terminal Crimp (dak/adet)</label>
+              <input type="number" id="termTime" value="1.5" step="0.1">
+            </div>
+            <div class="param">
+              <label>Test & Kontrol (dak)</label>
+              <input type="number" id="testTime" value="20">
+            </div>
+            <div class="param">
+              <label>Overhead (%)</label>
+              <input type="number" id="overhead" value="15">
+            </div>
+            <div class="param">
+              <label>Kar Marjı (%)</label>
+              <input type="number" id="margin" value="20">
+            </div>
+            <div class="param">
+              <label>Lojistik & Ambalaj (%)</label>
+              <input type="number" id="logistics" value="5">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Summary -->
+    <div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="panel-dot" style="background:var(--accent)"></div>
+            Teklif Özeti
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="summaryContent">
+            <div class="empty-state">
+              PDF yükleyin ve<br>Hesapla'ya basın
+            </div>
+          </div>
+          <button class="btn btn-calc" onclick="calculate()">⟳ &nbsp;HESAPLA</button>
+          <button class="btn btn-export" onclick="exportPDF()">↓ &nbsp;TEKLİF İNDİR</button>
+        </div>
+      </div>
+
+      <div class="panel gap" id="breakdownPanel" style="display:none">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="panel-dot" style="background:#ffc864"></div>
+            Maliyet Dağılımı
+          </div>
+        </div>
+        <div class="panel-body" id="breakdownContent"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let bomData = [];
+
+  // Drag and drop
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  });
+
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (file) processFile(file);
+  }
+
+  async function processFile(file) {
+    showProcessing('PDF okunuyor ve AI\'ya gönderiliyor...');
+
+    try {
+      // Convert file to base64
+      const base64 = await fileToBase64(file);
+      const isPDF = file.type === 'application/pdf' || file.name.endsWith('.pdf');
+
+      updateProcessing('Claude AI BOM kalemlerini analiz ediyor...');
+
+      // Call Claude API
+      const messages = isPDF ? [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+            },
+            {
+              type: 'text',
+              text: `Bu wiring harness PDF dökümanının Bill of Materials tablosunu analiz et ve JSON formatında döndür.
+
+Her kalem için şu alanları çıkar:
+- id: sıra numarası
+- type: komponent tipi (wire/cable/connector/terminal/contact/heat_shrink/sleeving/grommet/boot/other)
+- partNumber: part numarası
+- description: açıklama
+- quantity: miktar (sayısal değer, "≥" işaretlerini kaldır, "as-needed" için 1 kullan)
+- unit: birim (ft/mt/adet/pcs)
+- unitPrice: 0 (bilinmiyor, kullanıcı girecek)
+
+Sadece JSON array döndür, başka hiçbir şey yazma. Format:
+[{"id":1,"type":"wire","partNumber":"UL1007 20 AWG Red","description":"20 AWG Red PVC wire","quantity":17.13,"unit":"ft","unitPrice":0}]`
+            }
+          ]
+        }
+      ] : [
+        {
+          role: 'user',
+          content: `Bu CSV/Excel verisindeki BOM kalemlerini JSON formatında döndür:\n\n${atob(base64)}\n\nSadece JSON array döndür.`
+        }
+      ];
+
+      const response = await fetch('/api/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 8000,
+          messages
+        })
+      });
+
+      const data = await response.json();
+      const text = data.content.map(c => c.text || '').join('');
+
+      // Parse JSON
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error('JSON parse edilemedi');
+
+      const items = JSON.parse(jsonMatch[0]);
+      bomData = items.map(item => ({
+        ...item,
+        unitPrice: suggestPrice(item.type, item.description, item.unit)
+      }));
+
+      hideProcessing();
+      renderBOM();
+      calculate();
+
+      // Show AI note
+      document.getElementById('aiNote').style.display = 'block';
+      document.getElementById('aiNoteText').textContent = 
+        `${bomData.length} kalem otomatik yüklendi. Birim fiyatları tahmini değerler — kendi fiyat listenizle güncelleyin.`;
+
+    } catch (err) {
+      hideProcessing();
+      alert('Hata: ' + err.message);
+    }
+  }
+
+  function suggestPrice(type, desc, unit) {
+    // Smart price suggestions based on component type
+    desc = (desc || '').toLowerCase();
+    type = (type || '').toLowerCase();
+
+    if (type === 'wire' || type === 'cable') {
+      if (desc.includes('24 awg') || desc.includes('24awg')) return unit === 'ft' ? 6 : 18;
+      if (desc.includes('20 awg') || desc.includes('20awg')) return unit === 'ft' ? 8 : 24;
+      if (desc.includes('18 awg') || desc.includes('18awg')) return unit === 'ft' ? 10 : 30;
+      if (desc.includes('16 awg') || desc.includes('16awg')) return unit === 'ft' ? 13 : 40;
+      return unit === 'ft' ? 8 : 25;
+    }
+    if (type === 'connector') return 45;
+    if (type === 'terminal' || type === 'contact') return 4;
+    if (type === 'heat_shrink' || desc.includes('heat shrink')) return unit === 'ft' ? 5 : 12;
+    if (type === 'sleeving' || desc.includes('sleeving')) return unit === 'ft' ? 8 : 20;
+    if (type === 'grommet') return 15;
+    if (type === 'boot' || desc.includes('boot')) return 20;
+    if (desc.includes('zip tie') || desc.includes('cable tie')) return 2;
+    if (desc.includes('label')) return 3;
+    return 10;
+  }
+
+  function getChipClass(type) {
+    type = (type || '').toLowerCase();
+    if (type === 'wire') return 'chip-wire';
+    if (type === 'cable') return 'chip-cable';
+    if (type.includes('connect')) return 'chip-connector';
+    if (type.includes('terminal') || type.includes('contact')) return 'chip-terminal';
+    return 'chip-other';
+  }
+
+  function renderBOM() {
+    const tbody = document.getElementById('bomBody');
+    document.getElementById('itemCount').textContent = bomData.length + ' kalem';
+
+    if (!bomData.length) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">PDF yükleyin<br>AI BOM\'u otomatik dolduracak</div></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = bomData.map((item, i) => `
+      <tr>
+        <td style="color:var(--dim);font-family:var(--mono);font-size:11px">${item.id || i+1}</td>
+        <td><span class="type-chip ${getChipClass(item.type)}">${(item.type||'other').toUpperCase()}</span></td>
+        <td>
+          <div style="font-size:12px;color:var(--text)">${item.description || item.partNumber || '-'}</div>
+          ${item.partNumber ? `<div style="font-size:10px;color:var(--dim);font-family:var(--mono);margin-top:2px">${item.partNumber}</div>` : ''}
+        </td>
+        <td style="font-family:var(--mono);font-size:12px">${item.quantity}</td>
+        <td style="color:var(--dim);font-family:var(--mono);font-size:11px">${item.unit||'adet'}</td>
+        <td><input type="number" value="${item.unitPrice}" min="0" step="0.01" onchange="bomData[${i}].unitPrice=parseFloat(this.value)||0" style="width:75px"></td>
+      </tr>
+    `).join('');
+  }
+
+  function calculate() {
+    if (!bomData.length) return;
+
+    const laborRate = parseFloat(document.getElementById('laborRate').value) || 0;
+    const cableTime = parseFloat(document.getElementById('cableTime').value) || 0;
+    const connTime = parseFloat(document.getElementById('connTime').value) || 0;
+    const termTime = parseFloat(document.getElementById('termTime').value) || 0;
+    const testTime = parseFloat(document.getElementById('testTime').value) || 0;
+    const overhead = parseFloat(document.getElementById('overhead').value) / 100 || 0;
+    const margin = parseFloat(document.getElementById('margin').value) / 100 || 0;
+    const logistics = parseFloat(document.getElementById('logistics').value) / 100 || 0;
+
+    let materialCost = 0;
+    let totalMinutes = testTime;
+
+    bomData.forEach(item => {
+      // Convert ft to mt if needed
+      let qty = item.quantity;
+      let unit = (item.unit || '').toLowerCase();
+      if (unit === 'ft') qty = qty * 0.3048; // ft to meter
+
+      materialCost += qty * item.unitPrice;
+
+      const t = (item.type || '').toLowerCase();
+      if (t === 'wire' || t === 'cable') {
+        totalMinutes += (unit === 'ft' ? item.quantity * 0.3048 : item.quantity) * cableTime;
+      } else if (t.includes('connect')) {
+        totalMinutes += item.quantity * connTime;
+      } else if (t.includes('terminal') || t.includes('contact')) {
+        totalMinutes += item.quantity * termTime;
+      } else {
+        totalMinutes += item.quantity * 0.5;
+      }
+    });
+
+    const laborHours = totalMinutes / 60;
+    const laborCost = laborHours * laborRate;
+    const subtotal = materialCost + laborCost;
+    const overheadCost = subtotal * overhead;
+    const logisticsCost = subtotal * logistics;
+    const base = subtotal + overheadCost + logisticsCost;
+    const marginCost = base * margin;
+    const total = base + marginCost;
+
+    document.getElementById('summaryContent').innerHTML = `
+      <div class="sum-row"><span class="sum-label">Malzeme</span><span class="sum-val">₺${materialCost.toFixed(2)}</span></div>
+      <div class="sum-row"><span class="sum-label">İşçilik</span><span class="sum-val">₺${laborCost.toFixed(2)}</span></div>
+      <div class="sum-row"><span class="sum-label">Genel Gider (%${(overhead*100).toFixed(0)})</span><span class="sum-val">₺${overheadCost.toFixed(2)}</span></div>
+      <div class="sum-row"><span class="sum-label">Lojistik (%${(logistics*100).toFixed(0)})</span><span class="sum-val">₺${logisticsCost.toFixed(2)}</span></div>
+      <div class="sum-row"><span class="sum-label">Kar Marjı (%${(margin*100).toFixed(0)})</span><span class="sum-val">₺${marginCost.toFixed(2)}</span></div>
+      <div class="time-box">
+        <span class="time-label">⏱ İşçilik</span>
+        <span class="time-val">${totalMinutes.toFixed(0)} dak &nbsp;/&nbsp; ${laborHours.toFixed(2)} saat</span>
+      </div>
+      <div class="total-box">
+        <div class="total-label">Toplam Teklif</div>
+        <div class="total-val">₺${total.toFixed(2)}</div>
+      </div>
+    `;
+
+    // Breakdown
+    const items = [
+      { label: 'Malzeme', val: materialCost, color: 'var(--accent3)' },
+      { label: 'İşçilik', val: laborCost, color: 'var(--accent2)' },
+      { label: 'Overhead+Lojistik', val: overheadCost + logisticsCost, color: '#ffc864' },
+      { label: 'Kar Marjı', val: marginCost, color: 'var(--accent)' },
+    ];
+
+    const tot = items.reduce((s, i) => s + i.val, 0);
+    document.getElementById('breakdownContent').innerHTML = items.map(it => {
+      const pct = tot > 0 ? (it.val / tot * 100).toFixed(1) : 0;
+      return `
+        <div class="bar-item">
+          <div class="bar-info">
+            <span class="bar-label">${it.label}</span>
+            <span class="bar-pct" style="color:${it.color}">%${pct}</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${pct}%;background:${it.color}"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('breakdownPanel').style.display = 'block';
+  }
+
+  function exportPDF() {
+    let rows = bomData.map(item => `
+      <tr>
+        <td>${item.id}</td>
+        <td>${item.type}</td>
+        <td>${item.description}</td>
+        <td>${item.quantity} ${item.unit}</td>
+        <td>₺${item.unitPrice}</td>
+        <td>₺${(item.quantity * item.unitPrice).toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><meta charset="UTF-8"><style>
+      body{font-family:Arial;padding:40px;color:#222}
+      h1{color:#0a6}table{width:100%;border-collapse:collapse;margin:20px 0}
+      th{background:#0a6;color:white;padding:8px;font-size:12px;text-align:left}
+      td{padding:7px 8px;border-bottom:1px solid #eee;font-size:12px}
+      .total{background:#f0fff8;border:2px solid #0a6;padding:16px;text-align:right;margin-top:20px}
+      .total span{font-size:22px;font-weight:bold;color:#0a6}
+    </style></head><body>
+    <h1>Wiring Harness Teklifi</h1>
+    <p>Tarih: ${new Date().toLocaleDateString('tr-TR')}</p>
+    <table><tr><th>#</th><th>Tip</th><th>Açıklama</th><th>Miktar</th><th>Birim Fiyat</th><th>Toplam</th></tr>${rows}</table>
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 500);
+  }
+
+  function fileToBase64(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Dosya okunamadı'));
+      r.readAsDataURL(file);
+    });
+  }
+
+  function showProcessing(msg) {
+    document.getElementById('processing').classList.add('show');
+    document.getElementById('processingStatus').textContent = msg;
+  }
+
+  function updateProcessing(msg) {
+    document.getElementById('processingStatus').textContent = msg;
+  }
+
+  function hideProcessing() {
+    document.getElementById('processing').classList.remove('show');
+  }
+</script>
+</body>
+</html>
